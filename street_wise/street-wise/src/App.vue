@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <!-- LEFT PANEL -->
-    <aside class="panel sidebar">
+    <aside class="panel sidebar mainControls">
       <div class="sidebar__top">
         <div class="sidebar__row">
           <div class="sidebar__title">Street Wise</div>
@@ -22,17 +22,20 @@
 
           <div class="row" style="margin-top:8px;">
             <div class="kv">Brightness</div>
-            <input class="input input--sm" type="number" step="0.1" v-model.number="weights.brightnessWeight" />
+            <input class="input input--sm slider" type="range" min="0" max="5" step="0.1" v-model.number="weights.brightnessWeight" />
+            <div class="weightValue">{{ weights.brightnessWeight.toFixed(1) }}</div>
           </div>
 
           <div class="row" style="margin-top:8px;">
             <div class="kv">Noise</div>
-            <input class="input input--sm" type="number" step="0.1" v-model.number="weights.noiseWeight" />
+            <input class="input input--sm slider" type="range" min="0" max="5" step="0.1" v-model.number="weights.noiseWeight" />
+            <div class="weightValue">{{ weights.noiseWeight.toFixed(1) }}</div>
           </div>
 
           <div class="row" style="margin-top:8px;">
             <div class="kv">Crowds</div>
-            <input class="input input--sm" type="number" step="0.1" v-model.number="weights.crowdsWeight" />
+            <input class="input input--sm slider" type="range" min="0" max="5" step="0.1" v-model.number="weights.crowdsWeight" />
+            <div class="weightValue">{{ weights.crowdsWeight.toFixed(1) }}</div>
           </div>
 
           <div class="hr"></div>
