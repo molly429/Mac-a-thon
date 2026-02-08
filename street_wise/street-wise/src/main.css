@@ -312,3 +312,146 @@ body{
   background: #244c96;
   transition: all .2s ease;
 }
+
+.reasonCard { 
+  min-height: 220px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.reasonHeader,
+.scoreRow,
+.reasonSummary,
+.reasonDetails summary{
+  flex: 0 0 auto;
+}
+
+.reasonHeader{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding-top: 4px;
+}
+
+.reasonTitle{
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.reasonSub{
+  margin-top: 3px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.routeChip{
+  font-size: 20px;
+  font-weight: 700;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.12);
+  white-space: nowrap;
+}
+
+.scoreRow{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 10px 0 12px;
+}
+
+.scorePill{
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.pillTop{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:6px;
+}
+
+.pillDot{
+  width:10px;
+  height:10px;
+  border-radius:999px;
+}
+
+.dotBright{ background: rgba(120,190,255,0.95); }
+.dotNoise{  background: rgba(180,120,255,0.95); }
+.dotCrowd{  background: rgba(255,255,255,0.85); }
+
+.pillLabel{
+  font-size: 12px;
+  opacity: 0.75;
+  font-weight: 650;
+}
+
+.pillValue{
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.pillHint{
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.reasonSummary{
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.reasonDetails{
+  padding: 10px 12px;
+  margin-top: 8px;
+  min-height: 0;
+}
+
+.reasonDetails summary::after{
+  content: "See full explanation";
+}
+
+.reasonDetails[open] summary::after{
+  content: "Close full explanation";
+}
+
+.reasonDetails summary{
+  cursor:pointer;
+  user-select:none;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  opacity: 0.85;
+  list-style:none;
+}
+
+.reasonDetails summary::-webkit-details-marker{ display:none; }
+
+.reasonText{
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.12);
+  border: 1px solid rgba(255,255,255,0.10);
+  font-size: 13px;
+  line-height: 1.55;
+
+  overflow-y: auto;
+  max-height: 260px;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}

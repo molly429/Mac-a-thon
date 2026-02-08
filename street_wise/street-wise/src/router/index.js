@@ -4,6 +4,7 @@ import Home from "../Home.vue";
 import Main from "../Main.vue";
 
 const routes = [
+  { path: "/", name: "root", component: Home },
   { path: "/home", name: "home", component: Home },
   { path: "/application", name: "application", component: Main }
 ];
