@@ -65,9 +65,17 @@
       </div>
 
       <div class="details__body">
-        <div class="card" style="white-space:pre-wrap; min-height: 220px;">
-          {{ reasoningText || "No reasoning yet. Enter start/end and click Find Best Route." }}
-        </div>
+  <div 
+    class="card"
+    style="white-space:pre-wrap; min-height: 220px;"
+  >
+    <div v-if="!reasoningText">
+      No reasoning yet. Enter start/end and click Find Best Route.
+    </div>
+
+    <div v-else v-html="reasoningText"></div>
+  </div>
+
       </div>
     </aside>
   </div>
@@ -91,8 +99,10 @@ export default {
       routeDescription: "",
       map: null,
       routesLayer: null,
+      apiKey: import.meta.env.VITE_GEMINI_API_KEY,
     };
   },
+
 
   mounted() {
     // Initialize the Leaflet map centered around Hamilton, Ontario 
@@ -108,15 +118,51 @@ export default {
     this.initAutocomplete();
   },
 
+
   methods: {
-    initAutocomplete() {
-      // Find the input fields by their placeholder text and attach Google Places Autocomplete to them
-      const startInput = document.querySelector('input[placeholder="Enter start"]');
-      const endInput = document.querySelector('input[placeholder="Enter destination"]');
-      // If the input fields are found, initialize Autocomplete on them to provide location suggestions as the user types
-      if (startInput) new google.maps.places.Autocomplete(startInput);
-      if (endInput) new google.maps.places.Autocomplete(endInput);
-    },
+  initAutocomplete() {
+    const startInput = this.$refs.startInput;
+    const endInput = this.$refs.endInput;
+
+    if (startInput) {
+      this.startAutocomplete = new google.maps.places.Autocomplete(startInput);
+      this.startAutocomplete.addListener("place_changed", () => {
+        const place = this.startAutocomplete.getPlace();
+        this.start = place.formatted_address || place.name;
+      });
+    }
+
+    if (endInput) {
+      this.endAutocomplete = new google.maps.places.Autocomplete(endInput);
+      this.endAutocomplete.addListener("place_changed", () => {
+        const place = this.endAutocomplete.getPlace();
+        this.end = place.formatted_address || place.name;
+      });
+    }
+  },
+
+async callGemini(prompt) {
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + this.apiKey,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    }
+  );
+
+  const data = await response.json();
+  console.log("Gemini API raw response:", data);
+
+  const text =
+    data.candidates?.[0]?.content?.parts?.[0]?.text ||
+    "No reasoning generated.";
+
+  return text;
+},
+
     async getGoogleRoutes(start, end) {
       return new Promise((resolve, reject) => {
         //Google Maps Directions API client
@@ -291,58 +337,115 @@ Weights used:
      L.polyline(route.points, style).addTo(this.routesLayer);
    },
 
+async determineBestPossibleRoute() {
+  const start = this.start;
+  const end = this.end;
 
-   async determineBestPossibleRoute() {
-     const start = (this.start || "").trim();
-     const end = (this.end || "").trim();
-
-
-     if (!start || !end) {
-       alert("Please enter both start and destination.");
-       return;
-     }
-
-
-     this.loading = true;
-     this.reasoningText = "Calculating routes and sensory scores...";
-
-
-     try {
-      //get all possible Google routes
-       const googleRoutes = await this.getGoogleRoutes(start, end);
-       console.log("Google routes returned:", googleRoutes.length);
-
-      // Convert each Google route into internal format
-       const converted = [];
-       for (const r of googleRoutes) converted.push(await this.convertGoogleDirectionsRoute(r));
-
-      // Determine best route based on it's sensory score
-       const best = this.pickBestRoute(converted);
-
-      // Clear old map layers
-       this.routesLayer.clearLayers();
-       converted.forEach((r) => {
-         const isBest = r.name === best.name && r.score === best.score;
-         this.drawMapRoute(
-           r,
-           isBest
-             ? { color: "blue", weight: 6, opacity: 0.9 }
-             : { color: "black", weight: 4, opacity: 0.5 }
-         );
-       });
-
-    // Create route reasoning text
-       const reasoning = this.generateReasoning(best);
-       this.routeDescription = reasoning;
-       this.reasoningText = reasoning;
-     } catch (e) {
-       console.error(e);
-       this.reasoningText = "Error: " + e;
-     } finally {
-       this.loading = false;
-     }
-   },
+  if (!start || !end) {
+    alert("Please enter both start and destination.");
+    return;
   }
 
+  this.reasoningText = "Providing route suggestion...";
+  this.loading = true;
+
+  try {
+    // 1. Get Google routes
+    const googleRoutes = await this.getGoogleRoutes(start, end);
+
+    // 2. Convert + score routes
+    const converted = [];
+    for (const r of googleRoutes) {
+      const c = await this.convertGoogleDirectionsRoute(r);
+      c.score = this.scoreRoute(c.sensory);
+      converted.push(c);
+    }
+
+    // 3. Pick best route
+    const best = this.pickBestRoute(converted);
+
+    // 4. Draw routes on map
+    this.routesLayer.clearLayers();
+    converted.forEach(r =>
+      this.drawMapRoute(
+        r,
+        r === best
+          ? { color: "blue", weight: 6, opacity: 0.9 }
+          : { color: "black", weight: 4, opacity: 0.5 }
+      )
+    );
+
+    // 5. Build score panel HTML
+    let html = "<h3>Overall Sensory Scores for Each Route</h3>";
+
+    converted.forEach(route => {
+      const totals = {
+        brightness: this.average(route.sensory.map(s => s.brightness)).toFixed(1),
+        noise: this.average(route.sensory.map(s => s.noise)).toFixed(1),
+        crowds: this.average(route.sensory.map(s => s.crowds)).toFixed(1),
+      };
+
+      html += `
+        <div class="score-block">
+          <strong>${route.name}</strong><br>
+          Brightness: ${totals.brightness}<br>
+          Noise: ${totals.noise}<br>
+          Crowds: ${totals.crowds}<br>
+          Weighted Score: ${route.score.toFixed(2)}
+        </div>
+      `;
+    });
+
+    setTimeout(() => {
+      this.scorePanel = html;
+    }, 3000);
+
+    // 6. Gemini reasoning (paragraph style)
+    const totals = {
+      brightness: this.average(best.sensory.map(s => s.brightness)).toFixed(1),
+      noise: this.average(best.sensory.map(s => s.noise)).toFixed(1),
+      crowds: this.average(best.sensory.map(s => s.crowds)).toFixed(1),
+    };
+
+    const prompt = `
+Chosen route: ${best.name}
+
+User weights:
+Brightness: ${this.weights.brightnessWeight}
+Noise: ${this.weights.noiseWeight}
+Crowds: ${this.weights.crowdsWeight}
+
+Total sensory scores:
+Brightness: ${totals.brightness}
+Noise: ${totals.noise}
+Crowds: ${totals.crowds}
+
+Write a friendly, conversational explanation that:
+- Starts by confidently naming the chosen route
+- Explains why this route is the best match for the user's priorities
+- Mentions which factors scored well or poorly
+- Connects the scores to the user's weights
+- Ends with a positive, encouraging tone
+
+Do NOT output JSON. Write natural paragraphs.
+`;
+
+    const reasoning = await this.callGemini(prompt);
+
+    console.log("Gemini reasoning:", reasoning);
+
+    this.routeDescription = reasoning;
+    this.reasoningText = reasoning;
+
+  } catch (e) {
+    this.reasoningText = "Error: " + e;
+  } finally {
+    this.loading = false;
+  }
+}
+
+},
+
 };
- </script>
+
+</script>
