@@ -104,7 +104,7 @@
           </div>
         </div>
 
-        <div class="reasonSummary">
+        <div class="reasonSummary" v-if="!loading && !reasoningText">
           {{ shortReason || "No reasoning yet. Enter start/end and click Find Best Route." }}
         </div>
 
