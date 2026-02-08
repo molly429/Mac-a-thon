@@ -1,19 +1,28 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Street Wise</title>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Street Wise</title>
 
-  <link rel="stylesheet" href="/street-wise/src/main.css">
-</head>
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
 
-<body>
-  <div id="app" class="app">
-    <!-- Your app content will be rendered here -->
-     <h1>Street Wise</h1>
-  </div>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Your Vue app -->
-  <script src="src/main.js"></script>
-</body>
+    <!-- Google Maps JS -->
+    <script
+      src="https://maps.googleapis.com/maps/api/js?key=&libraries=places"
+    ></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+
+    <!-- Vite entry -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
