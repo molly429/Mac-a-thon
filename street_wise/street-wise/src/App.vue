@@ -93,14 +93,64 @@ export default {
   },
 
   mounted() {
+    // Initialize the Leaflet map centered around Hamilton, Ontario 
     this.map = L.map("map").setView([43.2557, -79.8711], 13);
-
+    // Add OpenStreetMap tiles as the base layer of the map
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19
     }).addTo(this.map);
-
+    // Create a layer group to store all the route polylines to easily clear the map
     this.routesLayer = L.layerGroup().addTo(this.map);
   },
+
+  methods: {
+    async obtainRoutes(start, end) {
+      return new Promise((resolve, reject) => {
+        //Google Maps Directions API client
+        const directionsClient = new google.maps.DirectionsService();
+
+        // Request directions between from + to destination
+        directionsClient.route(
+          {
+            origin: start,
+            destination: end,
+            travelMode: google.maps.TravelMode.DRIVING,
+            //Return multiple route options
+            provideRouteAlternatives: true,
+            region: "CA"
+          },
+          (result, status) => {
+            //If request is a success, return the possible list of routes
+            if (status === google.maps.DirectionsStatus.OK) resolve(result.routes);
+            else reject("Directions request has failed: " + status);
+          }
+        );
+      });
+    },
+
+    async placesThroughRoute(latitude, longitude) {
+      return new Promise((resolve) => {
+        // Form a PlacesService instance 
+        const placesServiceInstance = new google.maps.places.PlacesService(document.createElement("div"));
+        // Search for nearby places around the route coordinate
+        placesServiceInstance.nearbySearch(
+          {
+            location: { lat, lng },
+            radius: 1000,
+            types: [
+              "night_club", "bar", "stadium", "shopping_mall", "school",
+              "restaurant", "cafe", "gym", "movie_theater",
+              "transit_station", "bus_station", "train_station"
+            ]
+          },
+          (results, status) => {
+            // If a success, return the places, else return an empty array
+            if (status === google.maps.places.PlacesServiceStatus.OK) resolve(results);
+            else resolve([]);
+          }
+        );
+      });
+    },
 
 };
 </script>
