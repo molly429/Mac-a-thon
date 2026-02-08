@@ -45,7 +45,7 @@
               {{ loading ? "Working..." : "Find Best Route" }}
             </button>
 
-            <button class="btn" @click="speakReasoning" :disabled="!routeDescription">
+            <button class="btn btn--speak" @click="speakReasoning" :disabled="!routeDescription">
               Speak
             </button>
           </div>
@@ -151,6 +151,6 @@ export default {
         );
       });
     },
-
+  }
 };
 </script>

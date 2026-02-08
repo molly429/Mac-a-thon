@@ -89,6 +89,17 @@ body{
   box-shadow: 0 8px 20px rgba(17,24,39,.10);
 }
 
+.leaflet-bar {
+  border: none;
+}
+
+.leaflet-control-zoom a:hover{
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  color: #fff !important;
+  transition: all .4s ease;
+}
+
 
 /* -------- Right Detail Panel -------- */
 .details{
@@ -198,6 +209,7 @@ body{
 
 .input:hover {
   border-color: var(--primary);
+  transition: all .4s ease;
 }
 
 .input:focus{
@@ -250,4 +262,10 @@ body{
 
 .btn--primary:hover {
   background: #244c96;
+  transition: all .2s ease;
+}
+
+.btn--speak:hover and .btn--speak:not(:disabled):hover{
+  background: #244c96;
+  transition: all .2s ease;
 }
