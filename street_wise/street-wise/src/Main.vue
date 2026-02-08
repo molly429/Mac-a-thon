@@ -9,7 +9,7 @@
       </div>
 
       <div class="sidebar__list">
-        <div class="card">
+        <div class="main card">
           <div class="sectionTitle">Start</div>
           <input ref="startInput" class="input" v-model="start" placeholder="Enter start" />
 
@@ -65,17 +65,9 @@
       </div>
 
       <div class="details__body">
-  <div 
-    class="card"
-    style="white-space:pre-wrap; min-height: 220px;"
-  >
-    <div v-if="!reasoningText">
-      No reasoning yet. Enter start/end and click Find Best Route.
-    </div>
-
-    <div v-else v-html="reasoningText"></div>
-  </div>
-
+        <div class="main card" style="white-space:pre-wrap; min-height: 220px;">
+          {{ reasoningText || "No reasoning yet. Enter start/end and click Find Best Route." }}
+        </div>
       </div>
     </aside>
   </div>
