@@ -71,6 +71,49 @@ body{
   overflow:auto;
 }
 
+.pac-container{
+  z-index: 5000 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow) !important;
+  background: var(--panel) !important;
+  margin-top: 8px !important;
+  overflow: hidden !important;
+  font-family: inherit !important;
+}
+
+.pac-container:after{ display:none !important; }
+
+.pac-item{
+  padding: 10px 12px !important;
+  border-top: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  font-size: 13.5px !important;
+}
+
+.pac-item:first-child{
+  border-top: none !important;
+}
+
+.pac-item:hover,
+.pac-item-selected{
+  background: var(--pill) !important;
+}
+
+.pac-item-query{
+  font-size: 13.5px !important;
+  color: var(--text) !important;
+  font-weight: 800 !important;
+}
+.pac-matched{
+  color: var(--primary) !important;
+  font-weight: 900 !important;
+}
+.pac-item span:last-child{
+  color: var(--muted) !important;
+  font-weight: 600 !important;
+}
+
 /* -------- Center Map Panel -------- */
 .mapWrap{
   position:relative;
@@ -89,7 +132,7 @@ body{
   box-shadow: 0 8px 20px rgba(17,24,39,.10);
 }
 
-.leaflet-bar {
+.leaflet-touch .leaflet-control-layers, .leaflet-touch .leaflet-bar {
   border: none;
 }
 

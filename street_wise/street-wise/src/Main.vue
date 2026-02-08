@@ -11,10 +11,10 @@
       <div class="sidebar__list">
         <div class="card">
           <div class="sectionTitle">Start</div>
-          <input class="input" v-model="start" placeholder="Enter start" />
+          <input ref="startInput" class="input" v-model="start" placeholder="Enter start" />
 
           <div class="sectionTitle" style="margin-top:12px;">End</div>
-          <input class="input" v-model="end" placeholder="Enter destination" />
+          <input ref="endInput" class="input" v-model="end" placeholder="Enter destination" />
 
           <div class="hr"></div>
 
@@ -103,9 +103,20 @@ export default {
     }).addTo(this.map);
     // Create a layer group to store all the route polylines to easily clear the map
     this.routesLayer = L.layerGroup().addTo(this.map);
+
+    // Initialize Google Maps Places Autocomplete for the start and end input fields
+    this.initAutocomplete();
   },
 
   methods: {
+    initAutocomplete() {
+      // Find the input fields by their placeholder text and attach Google Places Autocomplete to them
+      const startInput = document.querySelector('input[placeholder="Enter start"]');
+      const endInput = document.querySelector('input[placeholder="Enter destination"]');
+      // If the input fields are found, initialize Autocomplete on them to provide location suggestions as the user types
+      if (startInput) new google.maps.places.Autocomplete(startInput);
+      if (endInput) new google.maps.places.Autocomplete(endInput);
+    },
     async getGoogleRoutes(start, end) {
       return new Promise((resolve, reject) => {
         //Google Maps Directions API client
