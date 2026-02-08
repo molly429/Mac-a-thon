@@ -41,7 +41,7 @@
           <div class="hr"></div>
 
           <div class="row">
-            <button class="btn btn--primary" @click="findBestRoute" :disabled="loading">
+            <button class="btn btn--primary" @click="determineBestPossibleRoute" :disabled="loading">
               {{ loading ? "Working..." : "Find Best Route" }}
             </button>
 
@@ -104,7 +104,7 @@ export default {
   },
 
   methods: {
-    async obtainRoutes(start, end) {
+    async getGoogleRoutes(start, end) {
       return new Promise((resolve, reject) => {
         //Google Maps Directions API client
         const directionsClient = new google.maps.DirectionsService();
@@ -128,12 +128,12 @@ export default {
       });
     },
 
-    async placesThroughRoute(latitude, longitude) {
+    async getPlacesAlongRoute(lat, lng) {
       return new Promise((resolve) => {
         // Form a PlacesService instance 
-        const placesServiceInstance = new google.maps.places.PlacesService(document.createElement("div"));
+        const service = new google.maps.places.PlacesService(document.createElement("div"));
         // Search for nearby places around the route coordinate
-        placesServiceInstance.nearbySearch(
+        service.nearbySearch(
           {
             location: { lat, lng },
             radius: 1000,
@@ -151,6 +151,185 @@ export default {
         );
       });
     },
+
+// Calculate sensory score for single point on the routes
+async sensoryScorePoint(lat, lng) {
+    //determine nearby places around the route coordinate
+    const places = await this.getPlacesAlongRoute(lat, lng);
+    //intialize sensory conditions scores
+    let brightness = 0, noise = 0, crowds = 0;
+    //determine score for each place based on sensory condition
+    places.forEach(place => {
+        const placeTypes = place.types || [];
+
+        if (placeTypes.includes("night_club") || placeTypes.includes("bar")) {
+            noise += 8; crowds += 6;
+        }
+        if (placeTypes.includes("stadium")) {
+            brightness += 9; noise += 7;
+        }
+        if (placeTypes.includes("shopping_mall")) crowds += 8;
+        if (placeTypes.includes("school")) crowds += 5;
+    });
+
+    return { brightness, noise, crowds };
+},
+
+
+  //Sample points along polyline to reduce API load
+   samplePoints(points, step = 5) {
+     const samplePoints = [];
+     for (let i = 0; i < points.length; i += step) samplePoints.push(points[i]);
+     return samplePoints;
+   },
+
+  //Convert a Google Directions route into internal format
+   async convertGoogleDirectionsRoute(route) {
+     const path = route.overview_path;
+     if (!path || !path.length) throw new Error("Route has no overview_path.");
+  // Convert Google latitude, longtitude objects into [latitutde, langitude] pairs
+     const decoded = path.map((p) => [p.lat(), p.lng()]);
+     // Reduce number of points to avoid excessive API calls
+     const samplePoints = this.samplePoints(decoded, 5);
+
+     const points = [];
+     const sensory = [];
+
+     // Compute sensory score for each sample coordinate
+     for (const [lat, lng] of samplePoints) {
+       points.push([lat, lng]);
+       sensory.push(await this.sensoryScorePoint(lat, lng));
+     }
+
+     return { name: route.summary || "Unnamed Route", points, sensory };
+   },
+
+   // Compute total sensory score for routes
+   scoreRoute(sensoryArr) {
+     const brightnessW = Number(this.weights.brightnessWeight);
+     const noiseW = Number(this.weights.noiseWeight);
+     const crowdsW = Number(this.weights.crowdsWeight);
+
+
+     let total = 0;
+     sensoryArr.forEach((seg) => {
+      //totals in each sensory category
+       total += seg.brightness * brightnessW;
+       total += seg.noise * noiseW;
+       total += seg.crowds * crowdsW;
+     });
+     return total;
+   },
+
+  //Determine the route with the lowest sensory score
+   pickBestRoute(routeList) {
+     let best = null;
+     let bestScore = Infinity;
+
+
+     routeList.forEach((route) => {
+       const score = this.scoreRoute(route.sensory);
+       // Store score on route object
+       route.score = score;
+
+         //lowest score is best route
+       if (score < bestScore) {
+         bestScore = score;
+         best = route;
+       }
+     });
+
+
+     return best;
+   },
+
+   // Compute average of numeric array
+   average(arr) {
+     return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+   },
+
+   //Generate reasoning for chosen route
+   generateReasoning(route) {
+     const averageBrightness = this.average(route.sensory.map((s) => s.brightness));
+     const averageNoise = this.average(route.sensory.map((s) => s.noise));
+     const averageCrowds = this.average(route.sensory.map((s) => s.crowds));
+
+
+     return `
+Best Route Selected: ${route.name}
+
+
+Reason:
+- Lowest sensory load score: ${route.score.toFixed(2)}
+- Average brightness: ${averageBrightness.toFixed(1)}
+- Average noise: ${averageNoise.toFixed(1)}
+- Average crowds: ${averageCrowds.toFixed(1)}
+
+
+Weights used:
+- Brightness: ${this.weights.brightnessWeight}
+- Noise:      ${this.weights.noiseWeight}
+- Crowds:     ${this.weights.crowdsWeight}
+`.trim();
+   },
+
+   // Draw a route polyline on the map
+   drawMapRoute(route, style) {
+     L.polyline(route.points, style).addTo(this.routesLayer);
+   },
+
+
+   async determineBestPossibleRoute() {
+     const start = (this.start || "").trim();
+     const end = (this.end || "").trim();
+
+
+     if (!start || !end) {
+       alert("Please enter both start and destination.");
+       return;
+     }
+
+
+     this.loading = true;
+     this.reasoningText = "Calculating routes and sensory scores...";
+
+
+     try {
+      //get all possible Google routes
+       const googleRoutes = await this.getGoogleRoutes(start, end);
+       console.log("Google routes returned:", googleRoutes.length);
+
+      // Convert each Google route into internal format
+       const converted = [];
+       for (const r of googleRoutes) converted.push(await this.convertGoogleDirectionsRoute(r));
+
+      // Determine best route based on it's sensory score
+       const best = this.pickBestRoute(converted);
+
+      // Clear old map layers
+       this.routesLayer.clearLayers();
+       converted.forEach((r) => {
+         const isBest = r.name === best.name && r.score === best.score;
+         this.drawMapRoute(
+           r,
+           isBest
+             ? { color: "blue", weight: 6, opacity: 0.9 }
+             : { color: "black", weight: 4, opacity: 0.5 }
+         );
+       });
+
+    // Create route reasoning text
+       const reasoning = this.generateReasoning(best);
+       this.routeDescription = reasoning;
+       this.reasoningText = reasoning;
+     } catch (e) {
+       console.error(e);
+       this.reasoningText = "Error: " + e;
+     } finally {
+       this.loading = false;
+     }
+   },
   }
+
 };
-</script>
+ </script>
